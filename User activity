@@ -1,0 +1,129 @@
+with metrics as(  #Об’єднані метрики юніоном
+select
+date,
+sp.country,
+send_interval,
+is_verified,
+is_unsubscribed,
+count(distinct a.id) as account_cnt,
+0 as sent_cnt,
+0 as open_msg,
+0 as visit_msg
+from data-analytics-mate.DA.account a
+join data-analytics-mate.DA.account_session acs  
+on a.id= acs.account_id
+join data-analytics-mate.DA.session_params sp
+on acs.ga_session_id= sp.ga_session_id
+join data-analytics-mate.DA.session s  
+on acs.ga_session_id= s.ga_session_id
+group by 1,2,3,4,5
+union all
+select
+date_add(s.date,INTERVAL sent_date day) as date,
+sp.country,
+a.send_interval,
+a.is_verified,
+a.is_unsubscribed,
+0 as account_cnt,
+COUNT(DISTINCT es.id_message) as sent_cnt,
+count(distinct eo.id_message) as open_msg,
+count (distinct ev.id_message ) as visit_msg
+from data-analytics-mate.DA.account a
+left join data-analytics-mate.DA.account_session acs
+on a.id=acs.account_id
+join data-analytics-mate.DA.session s
+on acs.ga_session_id=s.ga_session_id
+join data-analytics-mate.DA.session_params sp  
+on s.ga_session_id= sp.ga_session_id
+join data-analytics-mate.DA.email_sent es  
+on a.id=es.id_account
+left join data-analytics-mate.DA.email_open eo
+on es.id_message=eo.id_message
+left join data-analytics-mate.DA.email_visit ev
+on eo.id_message=ev.id_message
+group by 1,2,3,4,5),
+
+
+sumurize as(  #сумую каунти,тут було найбільше проблем,це зрозуміти
+
+
+select
+date,
+country,
+send_interval,
+is_verified,
+is_unsubscribed,
+SUM(account_cnt) as account_cnt ,    
+SUM(sent_cnt) as sent_cnt,    
+sum(open_msg) as open_msg,      
+sum(visit_msg) as visit_msg,
+ 
+from metrics
+group by 1,2,3,4,5
+
+
+),
+
+
+
+
+# тотал каунти окремо,щоб зрозуміліше було хід думок,що за чим,можна було їх і в основний запит винести,але так мені зручніше
+
+
+total as(
+select
+date,
+country,
+send_interval,
+is_verified,
+is_unsubscribed,
+account_cnt,    
+sent_cnt,      
+open_msg,      
+visit_msg,
+SUM(sent_cnt)OVER (PARTITION BY country)  as total_country_sent_cnt,  
+SUM(account_cnt)over (PARTITION BY country) as total_country_account_cnt    
+from sumurize
+group by 1,2,3,4,5,6,7,8,9
+
+
+
+
+),
+
+
+
+
+ranking as(
+select
+date,
+country,
+send_interval,
+is_verified,
+is_unsubscribed,
+account_cnt,    
+sent_cnt,      
+open_msg,      
+visit_msg,
+total_country_sent_cnt,
+total_country_account_cnt,  
+DENSE_RANK() OVER  ( ORDER BY total_country_sent_cnt desc) AS rank_total_country_sent_cnt,
+DENSE_RANK() OVER  ( ORDER BY total_country_account_cnt desc) AS rank_total_country_account_cnt
+from total
+)
+select
+date,
+country,
+send_interval,
+is_verified,
+is_unsubscribed,
+account_cnt,
+sent_cnt,
+open_msg,
+visit_msg,
+total_country_sent_cnt,
+rank_total_country_sent_cnt,
+total_country_account_cnt,
+rank_total_country_account_cnt
+from ranking
+where rank_total_country_account_cnt <= 10 OR rank_total_country_sent_cnt <= 10
