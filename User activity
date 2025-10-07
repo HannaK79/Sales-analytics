@@ -1,3 +1,9 @@
+-- Project: User Activity Analysis  
+-- Goal: Analyze user engagement (sends, opens, visits) by country and interval  
+-- Data source: data-analytics-mate.DA  
+-- Author: Hanna Kontar  
+-- Tool: BigQuery  
+
 WITH metrics AS ( 
     SELECT
         date,
