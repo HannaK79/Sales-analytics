@@ -1,2 +1,12 @@
-# Sales-analytics :
-The data captures account creation trends and user activity across emails (sends, opens, clicks). It also allows segmentation by country, verification, subscription status, and sending intervals to identify key markets.
+# Sales Analytics
+
+This project focuses on sales analysis to identify key trends and insights.
+
+Includes:
+- Data exploration and cleaning  
+- Revenue, cost, and profit analysis  
+- Category and regional performance comparison  
+- Time-based trends and shipping interval evaluation  
+- Visualizations and insights  
+
+**Tools:** Python, Pandas, Matplotlib, Seaborn, Tableau
